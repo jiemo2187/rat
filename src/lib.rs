@@ -99,6 +99,57 @@ pub struct PartitionBootSector {
     pub signature_word: [u8; 2], // 55h,AAh
 }
 
+/// FS Info Sector
+#[repr(align(512))]
+pub struct FsInfoSector {
+    pub lead_signature: [u8; 4],   // 52h, 52h, 61h, 64h
+    pub reserved1: [u8; 480],      // All 00h
+    pub struct_signature: [u8; 4], // 72h, 72h, 41h, 61h
+    pub free_cluster_count: u32,
+    pub next_free_cluster: u32,
+    pub reserved2: [u8; 12],
+    pub tail_signature: [u8; 4], // 00h, 00h, 55h, AAh
+}
+
+/// File Allocation Table
+#[repr(align(4))]
+
+pub enum FatEntryValue {
+    NotUsed = 0x00000000,
+    // Allocated = 00000002h to MAX,
+    // Reserved = MAX + 1 to FFFFFFF6h,
+    Defective = 0xfffffff7,
+    // Eoc = 0xfffffff8 ~ 0xffffffff,
+}
+
+/// File Directories
+/// Directory Entry Fields
+#[repr(align(32))]
+pub struct DirectoryEntryField {
+    pub name: [u8; 11],
+    pub attributes: Attribute,
+    pub reserved_for_nt: u8,
+    pub created_time_tenth: u8,
+    pub created_time: u16,
+    pub created_date: u16,
+    pub last_access_data: u16,
+    pub starting_cluster_number_high: u16,
+    pub time_recorded: u16,
+    pub date_recorded: u16,
+    pub starting_cluster_number_low: u16,
+    pub file_length: u32,
+}
+
+#[repr(align(1))]
+pub enum Attribute {
+    ReadOnly = 0x01,
+    Hidden = 0x02,
+    System = 0x04,
+    VolumeId = 0x08,
+    Directory = 0x10,
+    Archive = 0x20,
+}
+
 mod test {
     use super::*;
     #[test]
@@ -110,5 +161,11 @@ mod test {
         assert_eq!(512, size_of::<PartitionArea>());
 
         assert_eq!(512, size_of::<PartitionBootSector>());
+
+        assert_eq!(512, size_of::<FsInfoSector>());
+
+        assert_eq!(4, size_of::<FatEntryValue>());
+
+        assert_eq!(32, size_of::<DirectoryEntryField>());
     }
 }
