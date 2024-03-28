@@ -1,3 +1,8 @@
+use byteorder::{ByteOrder, LittleEndian};
+use serde::{Deserialize, Serialize};
+use serde_big_array::BigArray;
+use std::mem::size_of;
+
 /// Volume Structure
 ///
 /// File System Layout
@@ -18,8 +23,6 @@
 ///     - File Allocation Table
 /// - User Area
 ///     - User Data
-use serde::{Deserialize, Serialize};
-use serde_big_array::BigArray;
 
 #[repr(align(512))]
 #[derive(Debug, Serialize, Deserialize)]
@@ -32,18 +35,47 @@ pub struct PartitionArea {
     pub signature_word: SignatureWord,
 }
 
-// impl PartitionArea {
-//     fn new(data: [u8; 512]) -> Self {
-//         Self {
-//             master_boot_record: todo!(),
-//             partition1: todo!(),
-//             partition2: todo!(),
-//             partition3: todo!(),
-//             partition4: todo!(),
-//             signature_word: todo!(),
-//         }
-//     }
-// }
+impl PartitionArea {
+    pub fn new(data: [u8; 512]) -> Self {
+        let (mut start, mut end) = (0, size_of::<MasterBootRecord>());
+        let boot: [u8; size_of::<MasterBootRecord>()] = data[start..end]
+            .try_into()
+            .expect("Invalid MasterBootRecord data");
+        start = end;
+        end = end + size_of::<PartitionTable>();
+        let p1: [u8; size_of::<PartitionTable>()] = data[start..end]
+            .try_into()
+            .expect("Invalid PartitionTable data");
+        start = end;
+        end = end + size_of::<PartitionTable>();
+        let p2: [u8; size_of::<PartitionTable>()] = data[start..end]
+            .try_into()
+            .expect("Invalid PartitionTable data");
+        start = end;
+        end = end + size_of::<PartitionTable>();
+        let p3: [u8; size_of::<PartitionTable>()] = data[start..end]
+            .try_into()
+            .expect("Invalid PartitionTable data");
+        start = end;
+        end = end + size_of::<PartitionTable>();
+        let p4: [u8; size_of::<PartitionTable>()] = data[start..end]
+            .try_into()
+            .expect("Invalid PartitionTable data");
+        start = end;
+        end = end + size_of::<SignatureWord>();
+        let word: [u8; size_of::<SignatureWord>()] = data[start..end]
+            .try_into()
+            .expect("Invalid SignatureWord data");
+        Self {
+            master_boot_record: MasterBootRecord::new(boot),
+            partition1: PartitionTable::new(p1),
+            partition2: PartitionTable::new(p2),
+            partition3: PartitionTable::new(p3),
+            partition4: PartitionTable::new(p4),
+            signature_word: SignatureWord::new(word),
+        }
+    }
+}
 
 #[repr(C)]
 #[derive(Debug, Serialize, Deserialize)]
@@ -57,13 +89,13 @@ pub struct MasterBootRecord {
     pub not_restricted: [u8; 446],
 }
 
-// impl MasterBootRecord {
-//     fn new(data: [u8; 446]) -> Self {
-//         Self {
-//             not_restricted: data,
-//         }
-//     }
-// }
+impl MasterBootRecord {
+    pub fn new(data: [u8; 446]) -> Self {
+        Self {
+            not_restricted: data,
+        }
+    }
+}
 
 #[repr(align(16))]
 #[derive(Debug, Serialize, Deserialize)]
@@ -78,12 +110,33 @@ pub struct PartitionTable {
     pub total_sector: u32,
 }
 
+impl PartitionTable {
+    pub fn new(data: [u8; 16]) -> Self {
+        Self {
+            boot_indicator: data[0],
+            starting_head: data[1],
+            starting_sector: LittleEndian::read_u16(&data[2..4]),
+            system_id: data[4],
+            ending_head: data[5],
+            ending_sector: LittleEndian::read_u16(&data[6..8]),
+            relative_sector: LittleEndian::read_u32(&data[8..12]),
+            total_sector: LittleEndian::read_u32(&data[12..16]),
+        }
+    }
+}
+
 #[repr(align(2))]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SignatureWord {
     // #[serde(with = "serde_bytes")]
     #[serde(with = "BigArray")]
     pub _55aa: [u8; 2],
+}
+
+impl SignatureWord {
+    pub fn new(data: [u8; 2]) -> Self {
+        Self { _55aa: data }
+    }
 }
 
 // /// M : The number of reserved sector count
