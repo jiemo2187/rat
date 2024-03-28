@@ -18,8 +18,11 @@
 ///     - File Allocation Table
 /// - User Area
 ///     - User Data
+use serde::{Deserialize, Serialize};
+use serde_big_array::BigArray;
 
 #[repr(align(512))]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PartitionArea {
     pub master_boot_record: MasterBootRecord,
     pub partition1: PartitionTable,
@@ -29,12 +32,41 @@ pub struct PartitionArea {
     pub signature_word: SignatureWord,
 }
 
+// impl PartitionArea {
+//     fn new(data: [u8; 512]) -> Self {
+//         Self {
+//             master_boot_record: todo!(),
+//             partition1: todo!(),
+//             partition2: todo!(),
+//             partition3: todo!(),
+//             partition4: todo!(),
+//             signature_word: todo!(),
+//         }
+//     }
+// }
+
 #[repr(C)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct MasterBootRecord {
+    // #[serde(with = "serde_bytes")]
+    // #[serde(
+    //     serialize_with = "<[_]>::serialize",
+    //     deserialize_with = "<[_]>::deserialize"
+    // )]
+    #[serde(with = "BigArray")]
     pub not_restricted: [u8; 446],
 }
 
+// impl MasterBootRecord {
+//     fn new(data: [u8; 446]) -> Self {
+//         Self {
+//             not_restricted: data,
+//         }
+//     }
+// }
+
 #[repr(align(16))]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PartitionTable {
     pub boot_indicator: u8,
     pub starting_head: u8,
@@ -47,7 +79,10 @@ pub struct PartitionTable {
 }
 
 #[repr(align(2))]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SignatureWord {
+    // #[serde(with = "serde_bytes")]
+    #[serde(with = "BigArray")]
     pub _55aa: [u8; 2],
 }
 
