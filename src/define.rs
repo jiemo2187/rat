@@ -75,6 +75,10 @@ impl PartitionArea {
             signature_word: SignatureWord::new(word),
         }
     }
+
+    pub fn new_with_bincode(data: [u8; 512]) -> Self {
+        bincode::deserialize::<Self>(&data[..]).unwrap()
+    }
 }
 
 #[repr(C)]
@@ -94,6 +98,10 @@ impl MasterBootRecord {
         Self {
             not_restricted: data,
         }
+    }
+
+    pub fn new_with_bincode(data: [u8; 446]) -> Self {
+        bincode::deserialize::<Self>(&data[..]).unwrap()
     }
 }
 
@@ -123,6 +131,10 @@ impl PartitionTable {
             total_sector: LittleEndian::read_u32(&data[12..16]),
         }
     }
+
+    pub fn new_with_bincode(data: [u8; 16]) -> Self {
+        bincode::deserialize::<Self>(&data[..]).unwrap()
+    }
 }
 
 #[repr(align(2))]
@@ -136,6 +148,10 @@ pub struct SignatureWord {
 impl SignatureWord {
     pub fn new(data: [u8; 2]) -> Self {
         Self { _55aa: data }
+    }
+
+    pub fn new_with_bincode(data: [u8; 2]) -> Self {
+        bincode::deserialize::<Self>(&data[..]).unwrap()
     }
 }
 
