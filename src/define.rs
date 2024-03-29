@@ -171,8 +171,11 @@ impl SignatureWord {
 // }
 
 #[repr(align(512))]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PartitionBootSector {
+    #[serde(with = "BigArray")]
     pub jump_command: [u8; 3],
+    #[serde(with = "BigArray")]
     pub creating_system_identifier: [u8; 8],
     pub sector_size: u16,
     pub sectors_per_cluster: u8,
@@ -192,26 +195,38 @@ pub struct PartitionBootSector {
     pub root_cluster: u32,
     pub fs_info: u16,
     pub backup_boot_sector: u16,
-    pub reserved1: [u8; 12],                // All 00h
-    pub physical_disk_number: u8,           // 80h
-    pub reserved2: [u8; 1],                 // 00h
+    #[serde(with = "BigArray")]
+    pub reserved1: [u8; 12], // All 00h
+    pub physical_disk_number: u8, // 80h
+    #[serde(with = "BigArray")]
+    pub reserved2: [u8; 1], // 00h
     pub extended_boot_record_signature: u8, // 29h
     pub volume_id_number: u32,
+    #[serde(with = "BigArray")]
     pub volume_label: [u8; 11],
+    #[serde(with = "BigArray")]
     pub file_system_type: [u8; 8],
+    #[serde(with = "BigArray")]
     pub reserved3: [u8; 420],
+    #[serde(with = "BigArray")]
     pub signature_word: [u8; 2], // 55h,AAh
 }
 
 /// FS Info Sector
 #[repr(align(512))]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FsInfoSector {
-    pub lead_signature: [u8; 4],   // 52h, 52h, 61h, 64h
-    pub reserved1: [u8; 480],      // All 00h
+    #[serde(with = "BigArray")]
+    pub lead_signature: [u8; 4], // 52h, 52h, 61h, 64h
+    #[serde(with = "BigArray")]
+    pub reserved1: [u8; 480], // All 00h
+    #[serde(with = "BigArray")]
     pub struct_signature: [u8; 4], // 72h, 72h, 41h, 61h
     pub free_cluster_count: u32,
     pub next_free_cluster: u32,
+    #[serde(with = "BigArray")]
     pub reserved2: [u8; 12],
+    #[serde(with = "BigArray")]
     pub tail_signature: [u8; 4], // 00h, 00h, 55h, AAh
 }
 

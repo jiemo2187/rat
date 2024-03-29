@@ -20,7 +20,7 @@ fn signature_word_55aa_2() {
     let mut file = fs::File::open(img_dir).unwrap();
     let mut data = [0; 512];
     file.read(&mut data).unwrap();
-    let partition_area = PartitionArea::new(data[..].try_into().expect("msg"));
+    let partition_area = PartitionArea::new(data[..].try_into().expect("invalid data"));
     assert_eq!(partition_area.signature_word._55aa, [0x55, 0xaa]);
 }
 
@@ -31,6 +31,7 @@ fn signature_word_55aa_3() {
     let mut file = fs::File::open(img_dir).unwrap();
     let mut data = [0; 512];
     file.read(&mut data).unwrap();
-    let partition_area = PartitionArea::new_with_bincode(data[..].try_into().expect("msg"));
+    let partition_area =
+        PartitionArea::new_with_bincode(data[..].try_into().expect("invalid data"));
     assert_eq!(partition_area.signature_word._55aa, [0x55, 0xaa]);
 }
