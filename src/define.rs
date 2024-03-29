@@ -212,6 +212,27 @@ pub struct PartitionBootSector {
     pub signature_word: [u8; 2], // 55h,AAh
 }
 
+impl PartitionBootSector {
+    fn maximum_cluster_number(&self) -> u32 {
+        return self.total_sectors2 / (self.sectors_per_cluster as u32);
+    }
+    pub fn fat_entry_value(&self, cluster: u32) -> FatEntryValue {
+        if cluster == 0x0000_0000 {
+            FatEntryValue::NotUsed
+        } else if cluster >= 0x0000_00002 && cluster <= self.maximum_cluster_number() {
+            FatEntryValue::Allocated
+        } else if cluster > self.maximum_cluster_number() && cluster <= 0x0fff_fff6 {
+            FatEntryValue::Reserved
+        } else if cluster == 0x0fff_fff7 {
+            FatEntryValue::Defective
+        } else if cluster >= 0x0fff_fff8 && cluster <= 0x0fff_ffff {
+            FatEntryValue::Eoc
+        } else {
+            unreachable!("invalid fat entry value")
+        }
+    }
+}
+
 /// FS Info Sector
 #[repr(align(512))]
 #[derive(Debug, Serialize, Deserialize)]
@@ -231,14 +252,14 @@ pub struct FsInfoSector {
 }
 
 /// File Allocation Table
-#[repr(align(4))]
+#[derive(Debug, PartialEq, Eq)]
 
 pub enum FatEntryValue {
-    NotUsed = 0x00000000,
-    // Allocated = 00000002h to MAX,
-    // Reserved = MAX + 1 to FFFFFFF6h,
-    Defective = 0xfffffff7,
-    // Eoc = 0xfffffff8 ~ 0xffffffff,
+    NotUsed,
+    Allocated,
+    Reserved,
+    Defective,
+    Eoc,
 }
 
 /// File Directories
@@ -286,5 +307,17 @@ mod test {
         assert_eq!(4, size_of::<FatEntryValue>());
 
         assert_eq!(32, size_of::<DirectoryEntryField>());
+    }
+
+    #[test]
+    fn fat_entry_value_valid() {
+        // 拿测试镜像赋值
+        let mut pbs = bincode::deserialize::<PartitionBootSector>(&[0; 512]).unwrap();
+        pbs.total_sectors2 = 1048576;
+        pbs.sectors_per_cluster = 8;
+        assert_eq!(pbs.fat_entry_value(0x0000_0000), FatEntryValue::NotUsed);
+        assert_eq!(pbs.fat_entry_value(0x0000_0002), FatEntryValue::Allocated);
+        assert_eq!(pbs.fat_entry_value(0x0fff_fff7), FatEntryValue::Defective);
+        assert_eq!(pbs.fat_entry_value(0x0fff_fff8), FatEntryValue::Eoc);
     }
 }

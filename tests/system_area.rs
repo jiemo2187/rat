@@ -142,3 +142,71 @@ fn back_fs_info_sector() {
         warn!("No Backup FS Info Sector");
     }
 }
+
+#[test]
+fn file_allocation_table_compare() {
+    let _ = env_logger::builder()
+        .is_test(true)
+        .filter_level(log::LevelFilter::Info)
+        .try_init();
+
+    let current_dir = env::current_dir().unwrap();
+    let img_dir = current_dir.join("fat32_image.img");
+    let mut file = fs::File::open(img_dir).unwrap();
+    let mut data = [0; 512];
+    file.read(&mut data).unwrap();
+    let pbs = bincode::deserialize::<PartitionBootSector>(&data[..]).unwrap();
+
+    info!("Reserved Sector Count: {}", pbs.reserved_sector_count);
+    info!(
+        "Sectors per FAT for FAT32: {}",
+        pbs.sectors_per_fat_for_fat32
+    );
+
+    let sector_size = pbs.sector_size;
+    // 预留扇区后面就是 File Allocation Table1
+    let f1 = pbs.reserved_sector_count;
+    let fat_size = (pbs.sectors_per_fat_for_fat32 as usize) * (sector_size as usize);
+    let mut fat1_data = vec![0u8; fat_size];
+    file.seek(SeekFrom::Start((f1 * sector_size).into()))
+        .unwrap();
+    file.read(&mut fat1_data).unwrap();
+    let mut fat2_data = vec![0u8; fat_size];
+    file.read(&mut fat2_data).unwrap();
+    assert_eq!(fat1_data, fat2_data);
+}
+
+#[test]
+fn file_allocation_table() {
+    let _ = env_logger::builder()
+        .is_test(true)
+        .filter_level(log::LevelFilter::Info)
+        .try_init();
+
+    let current_dir = env::current_dir().unwrap();
+    let img_dir = current_dir.join("fat32_image.img");
+    let mut file = fs::File::open(img_dir).unwrap();
+    let mut data = [0; 512];
+    file.read(&mut data).unwrap();
+    let pbs = bincode::deserialize::<PartitionBootSector>(&data[..]).unwrap();
+
+    info!("Reserved Sector Count: {}", pbs.reserved_sector_count);
+    info!(
+        "Sectors per FAT for FAT32: {}",
+        pbs.sectors_per_fat_for_fat32
+    );
+
+    let sector_size = pbs.sector_size;
+    // 预留扇区后面就是 File Allocation Table1
+    let f1 = pbs.reserved_sector_count;
+    let fat_size = (pbs.sectors_per_fat_for_fat32 as usize) * (sector_size as usize);
+    let mut fat1_data = vec![0u8; fat_size];
+    file.seek(SeekFrom::Start((f1 * sector_size).into()))
+        .unwrap();
+    file.read(&mut fat1_data).unwrap();
+
+    let cluster = bincode::deserialize::<u32>(&fat1_data[0..4]).unwrap();
+
+    let value = pbs.fat_entry_value(cluster);
+    info!("cluster: 0x{:x}, value : {:?}", cluster, value);
+}
